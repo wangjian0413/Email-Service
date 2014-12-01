@@ -1,0 +1,107 @@
+<!DOCTYPE>
+<html>
+	<head>
+		<title>Email Service | Uber</title>
+		<script src="http://code.jquery.com/jquery-1.11.1.min.js"></script>
+		<script>
+			function isEmail(email) {
+				var re = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+				return re.test(email);
+			}
+
+			$( document ).ready(function() {
+
+				var validate = function() {
+					var alert = $('#alert');
+					if ($('input[name=from]').val() === "") {
+						alert.html('"from" email is missing');
+						return false;
+					} else if (!isEmail($('input[name=from]').val())) {
+						alert.html('"from" email is incorrect');
+						return false;
+					} else if ($('input[name=to]').val() === "") {
+						alert.html('"to" email is missing');
+						return false;
+					}
+					var emails = $('input[name=to]').val().split(",");
+					for (var i = 0; i < emails.length; i ++) {
+						var email = emails[i].trim();
+						if (!isEmail(email)) {
+							alert.html('"to" email is incorrect');
+							return false;
+						}
+					}
+					return true;
+				}
+				$("form").submit(function(e){
+					var values = {};
+					var alert = $('#alert');
+					var submit = $(this).find('input[type=submit]');
+					var $inputs = $(this).find('input, textarea').not(submit);
+
+					if (validate()) {
+						submit.attr('disabled', 'disabled');
+						alert.hide();
+						$inputs.each(function() {
+								values[this.name] = $(this).val();
+						});
+
+						$.ajax({
+							url  : '/api/email',
+							type : 'post',
+							data : values
+						}).done(function(data, statusText, xhr){
+							alert.html('Email has been sent correctly by ' + data.info).show();
+							$inputs.each(function() {
+								$(this).val("");
+							});
+							submit.removeAttr('disabled');
+						}).fail(function(data, statusText, xhr){
+							var status = data.status;
+							if (status === 400) {
+								alert.html(data.responseJSON.message).show();
+							} else if (status === 500) {
+								alert.html(data.statusText).show();
+							}
+							submit.removeAttr('disabled');
+						});
+					}
+
+					return false;
+				});
+			});
+		</script>
+	</head>
+	<body>
+		<div id="alert"></div>
+		<form>
+			<table>
+				<tr>
+					<td>From: </td>
+					<td><input name="from" type="input"/></td>
+				</tr>
+				<tr>
+					<td>To: </td>
+					<td><input name="to" type="input"/></td>
+				</tr>
+				<tr>
+					<td>CC: </td>
+					<td><input name="cc" type="input"/></td>
+				</tr>
+				<tr>
+					<td>BCC: </td>
+					<td><input name="bcc" type="input"/></td>
+				</tr>
+				<tr>
+					<td>Subject: </td>
+					<td><input name="subject" type="input"/></td>
+				</tr>
+				<tr>
+					<td>Content: </td>
+					<td><textarea name="text" rows="4" cols="50"></textarea></td>
+				</tr>
+			</table>
+			<input type="submit" value="Send"/>
+		</form>
+	</body>
+</html>	
